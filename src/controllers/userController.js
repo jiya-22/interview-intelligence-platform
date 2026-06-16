@@ -7,6 +7,14 @@ const getUsers = (req, res) => {
 
 const createUser = (req, res) => {
 
+    const { name, email } = req.body;
+
+    if (!name || !email) {
+        return res.status(400).json({
+            message: "Name and Email are required"
+        });
+    }
+
     const newUser = {
         id: currentId,
         ...req.body
@@ -16,7 +24,7 @@ const createUser = (req, res) => {
 
     currentId++;
 
-    res.json({
+    res.status(201).json({
         message: "User Created",
         data: newUser
     });
@@ -52,6 +60,12 @@ const getUserById = (req, res) => {
     const id = Number(req.params.id);
 
     const user = users.find(user => user.id === id);
+
+    if (!user) {
+        return res.status(404).json({
+            message: "User not found"
+        });
+    }
 
     res.json(user);
 };
