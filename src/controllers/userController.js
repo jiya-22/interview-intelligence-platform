@@ -1,65 +1,57 @@
-let users = [];
-let currentId = 1;
+const User = require("../models/User");
 
-const getUsers = (req, res) => {
+const getUsers = async (req, res) => {
+
+    const users = await User.find();
+
     res.json(users);
 };
 
-const createUser = (req, res) => {
+const createUser = async (req, res) => {
 
-    const { name, email } = req.body;
+    const user = await User.create(req.body);
 
-    if (!name || !email) {
-        return res.status(400).json({
-            message: "Name and Email are required"
-        });
-    }
-
-    const newUser = {
-        id: currentId,
-        ...req.body
-    };
-
-    users.push(newUser);
-
-    currentId++;
-
-    res.status(201).json({
+    res.json({
         message: "User Created",
-        data: newUser
+        data: user
     });
 };
 
-const updateUser = (req, res) => {
+const updateUser = async (req, res) => {
 
-    const id = Number(req.params.id);
+    const user = await User.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true }
+    );
 
-    const index = users.findIndex(user => user.id === id);
+    if (!user) {
+        return res.status(404).json({
+            message: "User not found"
+        });
+    }
 
-    users[index] = {
-        ...users[index],
-        ...req.body
-    };
-
-    res.json(users[index]);
+    res.json(user);
 };
 
-const deleteUser = (req, res) => {
+const deleteUser = async (req, res) => {
 
-    const id = Number(req.params.id);
+    const user = await User.findByIdAndDelete(req.params.id);
 
-    users = users.filter(user => user.id !== id);
+    if (!user) {
+        return res.status(404).json({
+            message: "User not found"
+        });
+    }
 
     res.json({
         message: "User Deleted"
     });
 };
 
-const getUserById = (req, res) => {
+const getUserById = async (req, res) => {
 
-    const id = Number(req.params.id);
-
-    const user = users.find(user => user.id === id);
+    const user = await User.findById(req.params.id);
 
     if (!user) {
         return res.status(404).json({

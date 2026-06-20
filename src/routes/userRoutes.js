@@ -1,6 +1,6 @@
 const express = require("express");
-
 const router = express.Router();
+const validateUser = require("../middleware/validateUser");
 
 const {
     getUsers,
@@ -12,7 +12,7 @@ const {
 
 router.get("/", getUsers);
 
-router.post("/", createUser);
+router.post("/", validateUser, createUser);
 
 router.put("/:id", updateUser);
 
