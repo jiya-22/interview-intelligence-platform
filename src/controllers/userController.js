@@ -5,11 +5,15 @@ const getUsers = async (req, res) => {
 
         const users = await User.find();
 
-        res.status(200).json(users);
+        res.status(200).json({
+            success: true,
+            data: users
+        });
 
     } catch (error) {
 
         res.status(500).json({
+            success: false,
             message: error.message
         });
 
@@ -22,19 +26,27 @@ const createUser = async (req, res) => {
         const user = await User.create(req.body);
 
         res.status(201).json({
+            success: true,
             message: "User Created",
             data: user
         });
 
     } catch (error) {
 
+        if (error.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                message: "Email already exists"
+            });
+        }
+
         res.status(500).json({
+            success: false,
             message: error.message
         });
 
     }
 };
-
 
 const updateUser = async (req, res) => {
     try {
@@ -47,15 +59,21 @@ const updateUser = async (req, res) => {
 
         if (!user) {
             return res.status(404).json({
+                success: false,
                 message: "User not found"
             });
         }
 
-        res.status(200).json(user);
+        res.status(200).json({
+            success: true,
+            message: "User Updated",
+            data: user
+        });
 
     } catch (error) {
 
         res.status(500).json({
+            success: false,
             message: error.message
         });
 
@@ -69,17 +87,20 @@ const deleteUser = async (req, res) => {
 
         if (!user) {
             return res.status(404).json({
+                success: false,
                 message: "User not found"
             });
         }
 
         res.status(200).json({
+            success: true,
             message: "User Deleted"
         });
 
     } catch (error) {
 
         res.status(500).json({
+            success: false,
             message: error.message
         });
 
@@ -93,15 +114,40 @@ const getUserById = async (req, res) => {
 
         if (!user) {
             return res.status(404).json({
+                success: false,
                 message: "User not found"
             });
         }
 
-        res.status(200).json(user);
+        res.status(200).json({
+            success: true,
+            data: user
+        });
 
     } catch (error) {
 
         res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+};
+
+const deleteAllUsers = async (req, res) => {
+    try {
+
+        await User.deleteMany({});
+
+        res.status(200).json({
+            success: true,
+            message: "All users deleted"
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+            success: false,
             message: error.message
         });
 
@@ -113,5 +159,6 @@ module.exports = {
     getUserById,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    deleteAllUsers
 };

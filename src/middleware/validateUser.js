@@ -4,6 +4,7 @@ const validateUser = (req, res, next) => {
 
     if (!name || !email) {
         return res.status(400).json({
+            success: false,
             message: "Name and Email are required"
         });
     }
