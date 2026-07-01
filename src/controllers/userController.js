@@ -3,12 +3,50 @@ const User = require("../models/User");
 const getUsers = async (req, res) => {
     try {
 
-        const users = await User.find();
+        let filter = {};
 
-        res.status(200).json({
-            success: true,
-            data: users
-        });
+        if (req.query.name) {
+            filter.name = {
+                $regex: req.query.name,
+                $options: "i"
+            };
+        }
+
+        if (req.query.email) {
+            filter.email = req.query.email;
+        }
+
+    let query = User.find(filter);
+
+if (req.query.fields) {
+
+    const fields = req.query.fields.split(",").join(" ");
+
+    query = query.select(fields);
+
+}
+if (req.query.sort) {
+    query = query.sort(req.query.sort);
+}
+
+const page = Number(req.query.page) || 1;
+const limit = Number(req.query.limit) || 10;
+
+const skip = (page - 1) * limit;
+
+query = query.skip(skip).limit(limit);
+
+const totalUsers = await User.countDocuments(filter);
+
+const users = await query;
+
+res.status(200).json({
+    success: true,
+    totalUsers,
+    currentPage: page,
+    totalPages: Math.ceil(totalUsers / limit),
+    data: users
+});
 
     } catch (error) {
 
