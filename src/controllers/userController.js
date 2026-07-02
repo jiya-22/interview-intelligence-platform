@@ -172,6 +172,57 @@ const getUserById = async (req, res) => {
     }
 };
 
+const getUserStats = async (req, res) => {
+    try {
+
+        const stats = await User.aggregate([
+            {
+                $group: {
+                    _id: "$department",
+
+                    totalEmployees: {
+                        $sum: 1
+                    },
+
+                    averageSalary: {
+                        $avg: "$salary"
+                    }
+                }
+            },
+
+            {
+                $match: {
+                    averageSalary: {
+                        $gt: 60000
+                    }
+                }
+            },
+
+            {
+                $project: {
+                    _id: 0,
+                    department: "$_id",
+                    totalEmployees: 1,
+                    averageSalary: 1
+                }
+            }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: stats
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+};
+
 const deleteAllUsers = async (req, res) => {
     try {
 
@@ -195,6 +246,7 @@ const deleteAllUsers = async (req, res) => {
 module.exports = {
     getUsers,
     getUserById,
+    getUserStats,
     createUser,
     updateUser,
     deleteUser,
