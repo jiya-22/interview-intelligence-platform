@@ -17,10 +17,13 @@ router.post("/", validateUser, createUser);
 
 router.put("/:id", updateUser);
 
+// Specific route first
+router.delete("/delete-all", deleteAllUsers);
+
+// Generic route after
 router.delete("/:id", deleteUser);
 
 router.get("/:id", getUserById);
 
-router.delete("/", deleteAllUsers);
 
 module.exports = router;
