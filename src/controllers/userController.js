@@ -1,3 +1,4 @@
+const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 
 const getUsers = async (req, res) => {
@@ -60,6 +61,11 @@ res.status(200).json({
 
 const createUser = async (req, res) => {
     try {
+
+        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+        // Replace plain password with hashed password
+        req.body.password = hashedPassword;
 
         const user = await User.create(req.body);
 
@@ -221,6 +227,35 @@ const getUserStats = async (req, res) => {
         });
 
     }
+};
+
+const loginUser = async (req, res) => {
+     try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+    return res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+    });
+}
+const isMatch = await bcrypt.compare(password, user.password);
+if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
+        }
+
+    } catch (error) {
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+
 };
 
 const deleteAllUsers = async (req, res) => {

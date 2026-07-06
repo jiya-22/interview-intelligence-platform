@@ -42,6 +42,12 @@ department: {
         "Marketing",
         "Sales"
     ]
+},
+
+password: {
+    type: String,
+    required: [true, "Password is required"],
+    minlength: [6, "Password should be at least 6 characters"]
 }
 
 
