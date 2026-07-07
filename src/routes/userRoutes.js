@@ -9,6 +9,7 @@ const {
     createUser,
     updateUser,
     deleteUser,
+    loginUser,
     deleteAllUsers
 } = require("../controllers/userController");
 
@@ -17,6 +18,8 @@ router.get("/", getUsers);
 router.get("/stats", getUserStats); 
 
 router.post("/", validateUser, createUser);
+
+router.post("/login", loginUser);
 
 router.put("/:id", updateUser);
 
