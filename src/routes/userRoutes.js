@@ -12,6 +12,9 @@ const {
     loginUser,
     deleteAllUsers
 } = require("../controllers/userController");
+const auth = require("../middleware/auth");
+
+const authorize = require("../middleware/authorize");
 
 router.get("/", getUsers);
 
@@ -27,7 +30,12 @@ router.put("/:id", updateUser);
 router.delete("/delete-all", deleteAllUsers);
 
 // Generic route after
-router.delete("/:id", deleteUser);
+router.delete(
+    "/:id",
+    auth,
+    authorize("admin"),
+    deleteUser
+);
 
 router.get("/:id", getUserById);
 
