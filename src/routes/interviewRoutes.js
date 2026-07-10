@@ -1,3 +1,4 @@
+const auth = require("../middleware/auth");
 const express = require("express");
 const router = express.Router();
 
@@ -9,14 +10,14 @@ const {
     deleteInterview
 } = require("../controllers/interviewController");
 
-router.post("/", createInterview);
+router.post("/",auth, createInterview);
 
-router.get("/", getInterviews);
+router.get("/", auth,getInterviews);
 
-router.get("/:id", getInterviewById);
+router.get("/:id",auth, getInterviewById);
 
-router.put("/:id", updateInterview);
+router.put("/:id", auth, updateInterview);
 
-router.delete("/:id", deleteInterview);
+router.delete("/:id", auth, deleteInterview);
 
 module.exports = router;

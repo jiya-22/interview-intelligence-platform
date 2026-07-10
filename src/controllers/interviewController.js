@@ -3,7 +3,7 @@ const Interview = require("../models/Interview");
 
     const createInterview = async (req, res) => {
     try {
-
+        req.body.user = req.user.id;
         const interview = await Interview.create(req.body);
 
         res.status(201).json({
