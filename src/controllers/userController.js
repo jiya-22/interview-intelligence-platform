@@ -231,27 +231,35 @@ const getUserStats = async (req, res) => {
 };
 
 const loginUser = async (req, res) => {
-     try {
+    try {
+
         const { email, password } = req.body;
+
         const user = await User.findOne({ email });
+       
+
         if (!user) {
-    return res.status(401).json({
-        success: false,
-        message: "Invalid email or password"
-    });
-}
-const isMatch = await bcrypt.compare(password, user.password);
-if (!isMatch) {
             return res.status(401).json({
                 success: false,
                 message: "Invalid email or password"
             });
         }
-             const token = jwt.sign(
+
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
+        }
+
+        // Generate Access Token
+        const accessToken = jwt.sign(
             {
                 id: user._id,
                 email: user.email,
-                role:user.role
+                role: user.role
             },
             process.env.JWT_SECRET,
             {
@@ -259,22 +267,39 @@ if (!isMatch) {
             }
         );
 
-        res.status(200).json({
+        // Generate Refresh Token
+        const refreshToken = jwt.sign(
+            {
+                id: user._id
+            },
+            process.env.REFRESH_SECRET,
+            {
+                expiresIn: process.env.REFRESH_EXPIRES_IN
+            }
+        );
+
+        // Save Refresh Token in Database
+        user.refreshToken = refreshToken;
+        await user.save();
+
+        // Send Response
+        return res.status(200).json({
             success: true,
             message: "Login Successful",
-            token
+            accessToken,
+            refreshToken
         });
 
     } catch (error) {
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message
         });
 
     }
-
 };
+
 
 const deleteAllUsers = async (req, res) => {
     try {
@@ -295,6 +320,59 @@ const deleteAllUsers = async (req, res) => {
 
     }
 };
+const refreshAccessToken = async (req, res) => {
+
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+        return res.status(401).json({
+            success: false,
+            message: "Refresh Token Required"
+        });
+    }
+
+    try {
+
+        const decoded = jwt.verify(
+            refreshToken,
+            process.env.REFRESH_SECRET
+        );
+
+        const user = await User.findById(decoded.id);
+
+        if (!user || user.refreshToken !== refreshToken) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid Refresh Token"
+            });
+        }
+
+        const accessToken = jwt.sign(
+            {
+                id: user._id,
+                email: user.email,
+                role: user.role
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: process.env.JWT_EXPIRES_IN
+            }
+        );
+
+        return res.status(200).json({
+            success: true,
+            accessToken
+        });
+
+    } catch (error) {
+
+        return res.status(401).json({
+            success: false,
+            message: "Invalid or Expired Refresh Token"
+        });
+
+    }
+};
 
 module.exports = {
     getUsers,
@@ -304,5 +382,6 @@ module.exports = {
     updateUser,
     loginUser,
     deleteUser,
-    deleteAllUsers
+    deleteAllUsers,
+    refreshAccessToken
 };

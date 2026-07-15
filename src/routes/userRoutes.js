@@ -10,7 +10,8 @@ const {
     updateUser,
     deleteUser,
     loginUser,
-    deleteAllUsers
+    deleteAllUsers,
+    refreshAccessToken
 } = require("../controllers/userController");
 const auth = require("../middleware/auth");
 
@@ -23,6 +24,8 @@ router.get("/stats", getUserStats);
 router.post("/", validateUser, createUser);
 
 router.post("/login", loginUser);
+
+router.post("/refresh", refreshAccessToken);
 
 router.put("/:id", updateUser);
 
