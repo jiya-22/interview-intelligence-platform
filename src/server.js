@@ -12,9 +12,13 @@ const interviewRoutes = require("./routes/interviewRoutes");
 
 const app = express();
 
+const cookieParser = require("cookie-parser");
+
 connectDB();
 
 app.use(express.json());
+
+app.use(cookieParser());
 
 app.get("/", (req, res) => {
     res.send("API Running");

@@ -277,19 +277,24 @@ const loginUser = async (req, res) => {
                 expiresIn: process.env.REFRESH_EXPIRES_IN
             }
         );
-
+        
         // Save Refresh Token in Database
         user.refreshToken = refreshToken;
         await user.save();
 
         // Send Response
-        return res.status(200).json({
-            success: true,
-            message: "Login Successful",
-            accessToken,
-            refreshToken
-        });
+        res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000
+});
 
+return res.status(200).json({
+    success: true,
+    message: "Login Successful",
+    accessToken
+});
     } catch (error) {
 
         return res.status(500).json({
@@ -299,7 +304,7 @@ const loginUser = async (req, res) => {
 
     }
 };
-
+ 
 
 const deleteAllUsers = async (req, res) => {
     try {
@@ -320,9 +325,10 @@ const deleteAllUsers = async (req, res) => {
 
     }
 };
+
 const refreshAccessToken = async (req, res) => {
 
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
         return res.status(401).json({
@@ -347,6 +353,7 @@ const refreshAccessToken = async (req, res) => {
             });
         }
 
+        // Generate NEW Access Token
         const accessToken = jwt.sign(
             {
                 id: user._id,
@@ -358,6 +365,29 @@ const refreshAccessToken = async (req, res) => {
                 expiresIn: process.env.JWT_EXPIRES_IN
             }
         );
+
+        // Generate NEW Refresh Token
+        const newRefreshToken = jwt.sign(
+            {
+                id: user._id
+            },
+            process.env.REFRESH_SECRET,
+            {
+                expiresIn: process.env.REFRESH_EXPIRES_IN
+            }
+        );
+
+        // Save NEW Refresh Token
+        user.refreshToken = newRefreshToken;
+        await user.save();
+
+        // Update Cookie
+        res.cookie("refreshToken", newRefreshToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
 
         return res.status(200).json({
             success: true,
@@ -374,6 +404,41 @@ const refreshAccessToken = async (req, res) => {
     }
 };
 
+const logoutUser = async (req, res) => {
+    try {
+
+        // Step 1
+const refreshToken = req.cookies.refreshToken;
+        // Step 2
+const user = await User.findOne({ refreshToken });
+//check if user exists
+if (!user) {
+    return res.status(404).json({
+        success: false,
+        message: "User not found"
+    });
+}
+        // Step 3
+user.refreshToken = null;
+await user.save();
+        // Step 4
+res.clearCookie("refreshToken");
+        // Step 5
+        return res.status(200).json({
+    success: true,
+    message: "Logout Successful"
+});
+
+    } catch (error) {
+        return res.status(500).json({
+        success: false,
+        message: error.message
+    });
+
+    }
+};
+
+
 module.exports = {
     getUsers,
     getUserById,
@@ -383,5 +448,6 @@ module.exports = {
     loginUser,
     deleteUser,
     deleteAllUsers,
-    refreshAccessToken
+    refreshAccessToken,
+    logoutUser
 };

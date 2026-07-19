@@ -11,7 +11,8 @@ const {
     deleteUser,
     loginUser,
     deleteAllUsers,
-    refreshAccessToken
+    refreshAccessToken,
+    logoutUser
 } = require("../controllers/userController");
 const auth = require("../middleware/auth");
 
@@ -26,6 +27,8 @@ router.post("/", validateUser, createUser);
 router.post("/login", loginUser);
 
 router.post("/refresh", refreshAccessToken);
+
+router.post("/logout", logoutUser);
 
 router.put("/:id", updateUser);
 
