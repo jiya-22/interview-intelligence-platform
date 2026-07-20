@@ -5,6 +5,9 @@ const validateUser = require("../middleware/validateUser");
 const {
     getUsers,
     getUserById,
+    getMyProfile,
+    updateMyProfile,
+    changePassword,
     getUserStats,
     createUser,
     updateUser,
@@ -18,19 +21,32 @@ const auth = require("../middleware/auth");
 
 const authorize = require("../middleware/authorize");
 
-router.get("/", getUsers);
+router.get("/",auth, getUsers);
 
-router.get("/stats", getUserStats); 
+router.get("/stats",auth, getUserStats); 
 
 router.post("/", validateUser, createUser);
 
 router.post("/login", loginUser);
 
+router.get("/me", auth, getMyProfile);
+
+router.patch(
+    "/me",
+    auth,
+    updateMyProfile
+);
+router.patch(
+    "/change-password",
+    auth,
+    changePassword
+);
+
 router.post("/refresh", refreshAccessToken);
 
 router.post("/logout", logoutUser);
 
-router.put("/:id", updateUser);
+router.put("/:id",auth, updateUser);
 
 // Specific route first
 router.delete("/delete-all", deleteAllUsers);
@@ -43,7 +59,8 @@ router.delete(
     deleteUser
 );
 
-router.get("/:id", getUserById);
+
+router.get("/:id", auth,getUserById);
 
 
 module.exports = router;

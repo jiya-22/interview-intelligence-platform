@@ -1,6 +1,10 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const {
+    generateAccessToken,
+    generateRefreshToken
+} = require("../utils/token");
 
 const getUsers = async (req, res) => {
     try {
@@ -179,6 +183,120 @@ const getUserById = async (req, res) => {
     }
 };
 
+const getMyProfile = async (req, res) => {
+    try {
+
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: user
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+};
+
+const updateMyProfile = async (req, res) => {
+    try {
+
+        const updatedData = {
+            name: req.body.name,
+            age: req.body.age,
+            salary: req.body.salary,
+            department: req.body.department
+        };
+
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            updatedData,
+            {
+                new: true
+            }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile Updated Successfully",
+            data: user
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+};
+
+const changePassword = async (req, res) => {
+
+    try {
+
+        const { oldPassword, newPassword } = req.body;
+
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        const isMatch = await bcrypt.compare(
+            oldPassword,
+            user.password
+        );
+
+        if (!isMatch) {
+            return res.status(400).json({
+                success: false,
+                message: "Old password is incorrect"
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(
+            newPassword,
+            10
+        );
+
+        user.password = hashedPassword;
+
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Password Changed Successfully"
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+
+};
+
+
 const getUserStats = async (req, res) => {
     try {
 
@@ -255,28 +373,10 @@ const loginUser = async (req, res) => {
         }
 
         // Generate Access Token
-        const accessToken = jwt.sign(
-            {
-                id: user._id,
-                email: user.email,
-                role: user.role
-            },
-            process.env.JWT_SECRET,
-            {
-                expiresIn: process.env.JWT_EXPIRES_IN
-            }
-        );
+        const accessToken = generateAccessToken(user);
 
         // Generate Refresh Token
-        const refreshToken = jwt.sign(
-            {
-                id: user._id
-            },
-            process.env.REFRESH_SECRET,
-            {
-                expiresIn: process.env.REFRESH_EXPIRES_IN
-            }
-        );
+       const refreshToken = generateRefreshToken(user);
         
         // Save Refresh Token in Database
         user.refreshToken = refreshToken;
@@ -354,28 +454,10 @@ const refreshAccessToken = async (req, res) => {
         }
 
         // Generate NEW Access Token
-        const accessToken = jwt.sign(
-            {
-                id: user._id,
-                email: user.email,
-                role: user.role
-            },
-            process.env.JWT_SECRET,
-            {
-                expiresIn: process.env.JWT_EXPIRES_IN
-            }
-        );
+        const accessToken = generateAccessToken(user);
 
         // Generate NEW Refresh Token
-        const newRefreshToken = jwt.sign(
-            {
-                id: user._id
-            },
-            process.env.REFRESH_SECRET,
-            {
-                expiresIn: process.env.REFRESH_EXPIRES_IN
-            }
-        );
+        const newRefreshToken = generateRefreshToken(user);
 
         // Save NEW Refresh Token
         user.refreshToken = newRefreshToken;
@@ -442,6 +524,9 @@ res.clearCookie("refreshToken");
 module.exports = {
     getUsers,
     getUserById,
+    getMyProfile,
+    updateMyProfile,
+    changePassword,
     getUserStats,
     createUser,
     updateUser,
