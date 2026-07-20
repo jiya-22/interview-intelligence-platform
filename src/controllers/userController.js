@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const crypto = require("crypto");
 const {
     generateAccessToken,
     generateRefreshToken
@@ -296,6 +297,97 @@ const changePassword = async (req, res) => {
 
 };
 
+const forgotPassword = async (req, res) => {
+    try {
+
+        const { email } = req.body;
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        // Generate Reset Token
+        const resetToken = crypto.randomBytes(32).toString("hex");
+
+        // Save Token + Expiry
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+
+        await user.save();
+
+        // Temporary reset link (for testing)
+        const resetLink =
+            `http://localhost:3000/reset-password/${resetToken}`;
+
+        return res.status(200).json({
+            success: true,
+            message: "Password reset link generated",
+            resetLink
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+};
+const resetPassword = async (req, res) => {
+
+    try {
+
+        const { token } = req.params;
+        const { password } = req.body;
+
+        const user = await User.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: {
+                $gt: Date.now()
+            }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or Expired Reset Token"
+            });
+        }
+
+        // Hash New Password
+        const hashedPassword =
+            await bcrypt.hash(password, 10);
+
+        user.password = hashedPassword;
+
+        // Remove Reset Token
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Password Reset Successfully"
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+
+};
+
 
 const getUserStats = async (req, res) => {
     try {
@@ -403,6 +495,40 @@ return res.status(200).json({
         });
 
     }
+};
+
+const uploadProfileImage = async (req, res) => {
+
+    try {
+
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        user.profileImage = req.file.path;
+
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile Image Uploaded",
+            profileImage: user.profileImage
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+
 };
  
 
@@ -527,10 +653,13 @@ module.exports = {
     getMyProfile,
     updateMyProfile,
     changePassword,
+    forgotPassword,
+    resetPassword,
     getUserStats,
     createUser,
     updateUser,
     loginUser,
+    uploadProfileImage,
     deleteUser,
     deleteAllUsers,
     refreshAccessToken,

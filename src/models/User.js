@@ -60,6 +60,19 @@ refreshToken: {
     default: null
 },
 
+resetPasswordToken: {
+    type: String
+},
+
+resetPasswordExpires: {
+    type: Date
+},
+
+profileImage: {
+    type: String,
+    default: ""
+},
+
 
 },
 {

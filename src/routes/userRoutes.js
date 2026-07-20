@@ -1,18 +1,21 @@
 const express = require("express");
 const router = express.Router();
 const validateUser = require("../middleware/validateUser");
-
+const upload = require("../middleware/upload");
 const {
     getUsers,
     getUserById,
     getMyProfile,
     updateMyProfile,
     changePassword,
+    forgotPassword,
+    resetPassword,
     getUserStats,
     createUser,
     updateUser,
     deleteUser,
     loginUser,
+    uploadProfileImage,
     deleteAllUsers,
     refreshAccessToken,
     logoutUser
@@ -31,15 +34,34 @@ router.post("/login", loginUser);
 
 router.get("/me", auth, getMyProfile);
 
+
+
 router.patch(
     "/me",
     auth,
     updateMyProfile
 );
+
+router.patch(
+    "/upload-profile",
+    auth,
+    upload.single("profileImage"),
+    uploadProfileImage
+);
+
 router.patch(
     "/change-password",
     auth,
     changePassword
+);
+router.post(
+    "/forgot-password",
+    forgotPassword
+);
+
+router.post(
+    "/reset-password/:token",
+    resetPassword
 );
 
 router.post("/refresh", refreshAccessToken);
