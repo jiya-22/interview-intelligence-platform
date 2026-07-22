@@ -12,6 +12,8 @@ const interviewRoutes = require("./routes/interviewRoutes");
 
 const companyRoutes = require("./routes/companyRoutes");
 
+const questionRoutes = require("./routes/questionRoutes");
+
 const app = express();
 
 const cookieParser = require("cookie-parser");
@@ -33,6 +35,8 @@ app.use("/users", userRoutes);
 app.use("/api/interviews", interviewRoutes);
 
 app.use("/companies", companyRoutes);
+
+app.use("/questions", questionRoutes);
 
 app.listen(5000, () => {
     console.log("Server running on port 5000");
