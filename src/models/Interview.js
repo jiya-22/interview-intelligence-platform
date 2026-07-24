@@ -2,16 +2,16 @@ const mongoose = require("mongoose");
 const interviewSchema = new mongoose.Schema(
     {
         company: {
-        type: String,
-        required: [true, "Company name is required"],
-        trim: true
-    },
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Company",
+    required: true
+},
     role: {
     type: String,
     required: [true, "Role is required"],
     trim: true
 },
-difficulty: {
+overallDifficulty: {
     type: String,
     required: [true, "Difficulty is required"],
     enum: ["Easy", "Medium", "Hard"]
@@ -31,11 +31,28 @@ interviewDate: {
     type: Date,
     required: [true, "Interview date is required"]
 },
+question: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Question",
+    required: true
+},
 user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: [true, "User is required"]
-}
+},
+upvotes: [
+    {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    }
+],
+downvotes: [
+    {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    }
+]
     },
     {
         timestamps: true

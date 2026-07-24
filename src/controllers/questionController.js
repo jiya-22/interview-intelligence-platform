@@ -7,7 +7,8 @@ const getQuestions = async (req, res) => {
             difficulty,
             topic,
             platform,
-            search
+            search,
+            sort
         } = req.query;
 
         let filter = {};
@@ -30,14 +31,28 @@ const getQuestions = async (req, res) => {
                 $options: "i"
             };
         }
+                  let sortOption = {
+                    createdAt: -1
+                  };
+if (sort === "oldest") {
+    sortOption = {
+        createdAt: 1
+    };
+}
+
+if (sort === "title") {
+    sortOption = {
+        title: 1
+    };
+}
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 10;
         const skip=(page-1)*limit;
         const totalQuestions = await Question.countDocuments(filter);
-                const totalPages = Math.ceil(totalQuestions / limit);    
-
+        const totalPages = Math.ceil(totalQuestions / limit);   
         const questions = await Question.find(filter)
             .populate("companies", "companyName logo")
+            .sort(sortOption)
             .skip(skip)
             .limit(limit);
 

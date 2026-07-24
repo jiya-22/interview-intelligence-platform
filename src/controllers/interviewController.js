@@ -33,7 +33,11 @@ const Interview = require("../models/Interview");
 const getInterviews = async (req, res) => {
     try {
 
-          const interviews = await Interview.find().populate("user", "name email");        res.status(200).json({
+        const interviews = await Interview.find()
+    .populate("user", "name email")
+    .populate("company", "companyName logo")
+    .populate("questions.question", "title difficulty");
+          res.status(200).json({
             success: true,
             data: interviews
         });
@@ -52,8 +56,9 @@ const getInterviewById = async (req, res) => {
     try {
 
         const interview = await Interview.findById(req.params.id)
-            .populate("user", "name email");
-
+    .populate("user", "name email")
+    .populate("company", "companyName logo")
+    .populate("questions.question", "title difficulty");
         if (!interview) {
             return res.status(404).json({
                 success: false,
@@ -82,7 +87,9 @@ const updateInterview = async (req, res) => {
         const interview = await Interview.findByIdAndUpdate(
             req.params.id,
             req.body,
-            { new: true }
+            { new: true,
+                runValidators: true
+             }
         );
 
         if (!interview) {
