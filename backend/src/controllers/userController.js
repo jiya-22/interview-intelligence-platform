@@ -1,0 +1,655 @@
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const crypto = require("crypto");
+const transporter = require("../config/mail");
+const mongoose = require("mongoose");
+const AppError = require("../utils/AppError");
+const {
+    generateAccessToken,
+    generateRefreshToken
+} = require("../utils/token");
+
+const getUsers = async (req, res, next) => {
+    try {
+
+        let filter = {};
+
+        if (req.query.name) {
+            filter.name = {
+                $regex: req.query.name,
+                $options: "i"
+            };
+        }
+
+        if (req.query.email) {
+            filter.email = req.query.email;
+        }
+
+    let query = User.find(filter);
+
+if (req.query.fields) {
+
+    const fields = req.query.fields.split(",").join(" ");
+
+    query = query.select(fields);
+
+}
+if (req.query.sort) {
+    query = query.sort(req.query.sort);
+}
+
+const page = Number(req.query.page) || 1;
+const limit = Number(req.query.limit) || 10;
+
+const skip = (page - 1) * limit;
+
+query = query.skip(skip).limit(limit);
+
+const totalUsers = await User.countDocuments(filter);
+
+const users = await query;
+
+res.status(200).json({
+    success: true,
+    totalUsers,
+    currentPage: page,
+    totalPages: Math.ceil(totalUsers / limit),
+    data: users
+});
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+const createUser = async (req, res, next) => {
+    try {
+        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+        // Replace plain password with hashed password
+        req.body.password = hashedPassword;
+
+        const user = await User.create(req.body);
+
+        res.status(201).json({
+            success: true,
+            message: "User Created",
+            data: user
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return next(
+                new AppError("Email already exists", 400)
+            );
+        }
+        next(error);
+    }
+};
+
+const updateUser = async (req, res, next) => {
+    try {
+
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return next(
+                new AppError("Invalid user ID", 400)
+            );
+        }
+
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "User Updated",
+            data: user
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+const deleteUser = async (req, res, next) => {
+    try {
+
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return next(
+                new AppError("Invalid user ID", 400)
+            );
+        }
+
+        const user = await User.findByIdAndDelete(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "User Deleted"
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+const getUserById = async (req, res, next) => {
+    try {
+
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return next(
+                new AppError("Invalid user ID", 400)
+            );
+        }
+
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: user
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+const getMyProfile = async (req, res, next) => {
+    try {
+
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: user
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+const updateMyProfile = async (req, res, next) => {
+    try {
+
+        const updatedData = {
+            name: req.body.name,
+            age: req.body.age,
+            salary: req.body.salary,
+            department: req.body.department
+        };
+
+        const user = await User.findByIdAndUpdate(
+            req.user.id,
+            updatedData,
+            {
+                new: true
+            }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile Updated Successfully",
+            data: user
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+const changePassword = async (req, res, next) => {
+
+    try {
+
+        const { oldPassword, newPassword } = req.body;
+
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        const isMatch = await bcrypt.compare(
+            oldPassword,
+            user.password
+        );
+
+        if (!isMatch) {
+            return res.status(400).json({
+                success: false,
+                message: "Old password is incorrect"
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(
+            newPassword,
+            10
+        );
+
+        user.password = hashedPassword;
+
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Password Changed Successfully"
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+
+const forgotPassword = async (req, res, next) => {
+    try {
+
+        const { email } = req.body;
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        // Generate Reset Token
+        const resetToken = crypto.randomBytes(32).toString("hex");
+
+        // Save Token + Expiry
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+
+        await user.save();
+
+        // Temporary reset link (for testing)
+        const resetLink =
+            `http://localhost:3000/reset-password/${resetToken}`;
+
+            await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: user.email,
+    subject: "Password Reset Request",
+    html: `
+        <h2>Password Reset</h2>
+
+        <p>You requested to reset your password.</p>
+
+        <p>Click the button below to reset your password:</p>
+
+        <a href="${resetLink}">
+            Reset Password
+        </a>
+
+        <p>This link will expire in 15 minutes.</p>
+    `
+});
+
+        return res.status(200).json({
+    success: true,
+    message: "Password reset email sent successfully"
+});
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+const resetPassword = async (req, res, next) => {
+
+    try {
+
+        const { token } = req.params;
+        const { password } = req.body;
+
+        const user = await User.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: {
+                $gt: Date.now()
+            }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or Expired Reset Token"
+            });
+        }
+
+        // Hash New Password
+        const hashedPassword =
+            await bcrypt.hash(password, 10);
+
+        user.password = hashedPassword;
+
+        // Remove Reset Token
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Password Reset Successfully"
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+
+
+const getUserStats = async (req, res, next) => {
+    try {
+
+        const stats = await User.aggregate([
+            {
+                $group: {
+                    _id: "$department",
+
+                    totalEmployees: {
+                        $sum: 1
+                    },
+
+                    averageSalary: {
+                        $avg: "$salary"
+                    }
+                }
+            },
+
+            {
+                $match: {
+                    averageSalary: {
+                        $gt: 60000
+                    }
+                }
+            },
+
+            {
+                $project: {
+                    _id: 0,
+                    department: "$_id",
+                    totalEmployees: 1,
+                    averageSalary: 1
+                }
+            }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: stats
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+const loginUser = async (req, res, next) => {
+    try {
+
+        const { email, password } = req.body;
+
+        const user = await User.findOne({ email });
+       
+
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
+        }
+
+        // Generate Access Token
+        const accessToken = generateAccessToken(user);
+
+        // Generate Refresh Token
+       const refreshToken = generateRefreshToken(user);
+        
+        // Save Refresh Token in Database
+        user.refreshToken = refreshToken;
+        await user.save();
+
+        // Send Response
+        res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000
+});
+
+return res.status(200).json({
+    success: true,
+    message: "Login Successful",
+    accessToken
+});
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+const uploadProfileImage = async (req, res, next) => {
+
+    try {
+
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        user.profileImage = req.file.path;
+
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile Image Uploaded",
+            profileImage: user.profileImage
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+ 
+
+const deleteAllUsers = async (req, res, next) => {
+    try {
+
+        await User.deleteMany({});
+
+        res.status(200).json({
+            success: true,
+            message: "All users deleted"
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+};
+
+const refreshAccessToken = async (req, res) => {
+
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+        return res.status(401).json({
+            success: false,
+            message: "Refresh Token Required"
+        });
+    }
+
+    try {
+
+        const decoded = jwt.verify(
+            refreshToken,
+            process.env.REFRESH_SECRET
+        );
+
+        const user = await User.findById(decoded.id);
+
+        if (!user || user.refreshToken !== refreshToken) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid Refresh Token"
+            });
+        }
+
+        // Generate NEW Access Token
+        const accessToken = generateAccessToken(user);
+
+        // Generate NEW Refresh Token
+        const newRefreshToken = generateRefreshToken(user);
+
+        // Save NEW Refresh Token
+        user.refreshToken = newRefreshToken;
+        await user.save();
+
+        // Update Cookie
+        res.cookie("refreshToken", newRefreshToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        return res.status(200).json({
+            success: true,
+            accessToken
+        });
+
+    } catch (error) {
+
+        return res.status(401).json({
+            success: false,
+            message: "Invalid or Expired Refresh Token"
+        });
+
+    }
+};
+
+const logoutUser = async (req, res, next) => {
+    try {
+
+        // Step 1
+const refreshToken = req.cookies.refreshToken;
+        // Step 2
+const user = await User.findOne({ refreshToken });
+//check if user exists
+if (!user) {
+    return res.status(404).json({
+        success: false,
+        message: "User not found"
+    });
+}
+        // Step 3
+user.refreshToken = null;
+await user.save();
+        // Step 4
+res.clearCookie("refreshToken");
+        // Step 5
+        return res.status(200).json({
+    success: true,
+    message: "Logout Successful"
+});
+
+    } catch (error) {
+        next(error);
+
+    }
+};
+
+
+module.exports = {
+    getUsers,
+    getUserById,
+    getMyProfile,
+    updateMyProfile,
+    changePassword,
+    forgotPassword,
+    resetPassword,
+    getUserStats,
+    createUser,
+    updateUser,
+    loginUser,
+    uploadProfileImage,
+    deleteUser,
+    deleteAllUsers,
+    refreshAccessToken,
+    logoutUser
+};

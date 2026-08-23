@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.env
+*.log
+wsl-test.txt
+frontend/dist/

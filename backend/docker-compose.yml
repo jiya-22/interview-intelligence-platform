@@ -1,0 +1,11 @@
+services:
+  backend:
+    image: interview-backend:latest
+
+    ports:
+      - "5000:5000"
+
+    env_file:
+      - .env
+
+    restart: unless-stopped
