@@ -25,7 +25,7 @@ function Register() {
 
     setIsSubmitting(true)
     try {
-      await apiRequest("/users", {
+      await apiRequest("/api/v1/users", {
         method: "POST",
         body: JSON.stringify({ name, email, password }),
       })

@@ -1,6 +1,5 @@
-import { createContext, useState, useEffect } from "react"
-
-const ThemeContext = createContext()
+import { useState, useEffect } from "react"
+import { ThemeContext } from "./themeContext"
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark")
@@ -26,4 +25,3 @@ export function ThemeProvider({ children }) {
   )
 }
 
-export { ThemeContext }

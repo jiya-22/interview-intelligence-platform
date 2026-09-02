@@ -1,7 +1,6 @@
-import { createContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import apiRequest from "../services/api";
-
-const AuthContext = createContext();
+import { AuthContext } from "./authContext";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -15,7 +14,7 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    apiRequest("/users/me", {
+    apiRequest("/api/v1/users/me", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -33,7 +32,7 @@ export function AuthProvider({ children }) {
     setLoading(true);
 
     try {
-      const data = await apiRequest("/users/login", {
+      const data = await apiRequest("/api/v1/users/login", {
         method: "POST",
         body: JSON.stringify({
           email,
@@ -45,7 +44,7 @@ export function AuthProvider({ children }) {
 
       setToken(data.accessToken);
 
-      const profile = await apiRequest("/users/me", {
+      const profile = await apiRequest("/api/v1/users/me", {
         headers: {
           Authorization: `Bearer ${data.accessToken}`,
         },
@@ -61,7 +60,7 @@ export function AuthProvider({ children }) {
 
   async function logout() {
     try {
-      await apiRequest("/users/logout", {
+      await apiRequest("/api/v1/users/logout", {
         method: "POST",
       });
     } finally {
@@ -86,4 +85,3 @@ export function AuthProvider({ children }) {
   );
 }
 
-export { AuthContext };
