@@ -73,10 +73,10 @@ router.post("/refresh", refreshAccessToken);
 
 router.post("/logout", logoutUser);
 
-router.put("/:id",auth, updateUser);
+router.put("/:id", auth, authorize("admin"), updateUser);
 
 // Specific route first
-router.delete("/delete-all", deleteAllUsers);
+router.delete("/delete-all", auth, authorize("admin"), deleteAllUsers);
 
 // Generic route after
 router.delete(

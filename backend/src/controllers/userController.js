@@ -98,10 +98,16 @@ const updateUser = async (req, res, next) => {
             );
         }
 
+        const updateData = { ...req.body };
+
+        if (updateData.password) {
+            updateData.password = await bcrypt.hash(updateData.password, 10);
+        }
+
         const user = await User.findByIdAndUpdate(
             req.params.id,
-            req.body,
-            { new: true }
+            updateData,
+            { new: true, runValidators: true }
         );
 
         if (!user) {
@@ -293,7 +299,7 @@ const forgotPassword = async (req, res, next) => {
 
         const { email } = req.body;
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).select("+password");
 
         if (!user) {
             return res.status(404).json({
@@ -561,7 +567,7 @@ const refreshAccessToken = async (req, res) => {
             process.env.REFRESH_SECRET
         );
 
-        const user = await User.findById(decoded.id);
+        const user = await User.findById(decoded.id).select("+refreshToken");
 
         if (!user || user.refreshToken !== refreshToken) {
             return res.status(401).json({
@@ -609,7 +615,7 @@ const logoutUser = async (req, res, next) => {
         // Step 1
 const refreshToken = req.cookies.refreshToken;
         // Step 2
-const user = await User.findOne({ refreshToken });
+const user = await User.findOne({ refreshToken }).select("+refreshToken");
 //check if user exists
 if (!user) {
     return res.status(404).json({

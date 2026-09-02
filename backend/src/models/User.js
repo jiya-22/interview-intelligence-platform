@@ -44,10 +44,11 @@ department: {
     ]
 },
 
-password: {
-    type: String,
-    required: [true, "Password is required"],
-    minlength: [6, "Password should be at least 6 characters"]
+    password: {
+        type: String,
+        required: [true, "Password is required"],
+        minlength: [6, "Password should be at least 6 characters"],
+        select: false
 },
 
 role: {
@@ -55,17 +56,20 @@ role: {
     enum: ["user", "admin"],
     default: "user"
 },
-refreshToken: {
-    type: String,
-    default: null
+    refreshToken: {
+        type: String,
+        default: null,
+        select: false
 },
 
-resetPasswordToken: {
-    type: String
+    resetPasswordToken: {
+        type: String,
+        select: false
 },
 
-resetPasswordExpires: {
-    type: Date
+    resetPasswordExpires: {
+        type: Date,
+        select: false
 },
 
 profileImage: {
@@ -83,7 +87,16 @@ bookmarkedQuestions: [
 
 },
 {
-    timestamps: true
+    timestamps: true,
+    toJSON: {
+        transform: (_doc, ret) => {
+            delete ret.password;
+            delete ret.refreshToken;
+            delete ret.resetPasswordToken;
+            delete ret.resetPasswordExpires;
+            return ret;
+        }
+    }
 }
 );
 
