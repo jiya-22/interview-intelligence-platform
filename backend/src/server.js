@@ -13,7 +13,6 @@ const interviewRoutes = require("./routes/interviewRoutes");
 const companyRoutes = require("./routes/companyRoutes");
 const questionRoutes = require("./routes/questionRoutes");
 const resumeRoutes = require("./routes/resumeRoutes");
-const uploadRoutes = require("./routes/uploadRoutes");
 const emailRoutes = require("./routes/emailRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const bookmarkRoutes = require("./routes/bookmarkRoutes");
@@ -28,7 +27,7 @@ app.use(cookieParser());
 app.use(helmet());
 app.use(
     cors({
-        origin: "http://localhost:5173",
+        origin: process.env.FRONTEND_URL,
         credentials: true
     })
 );
@@ -40,16 +39,15 @@ app.get("/", (req, res) => {
 });
 
 // Routes
-app.use("/users", userRoutes);
-app.use("/api/interviews", interviewRoutes);
-app.use("/companies", companyRoutes);
-app.use("/questions", questionRoutes);
-app.use("/api/resume", resumeRoutes);
-app.use("/api/v1/upload", uploadRoutes);
-app.use("/api/email", emailRoutes);
-app.use("/admin", adminRoutes);
-app.use("/bookmarks", bookmarkRoutes);
-app.use("/notifications", notificationRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/interviews", interviewRoutes);
+app.use("/api/v1/companies", companyRoutes);
+app.use("/api/v1/questions", questionRoutes);
+app.use("/api/v1/resume", resumeRoutes);
+app.use("/api/v1/email", emailRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/bookmarks", bookmarkRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
 app.use(errorHandler);
 app.listen(5000, () => {
     console.log("Server running on port 5000");
