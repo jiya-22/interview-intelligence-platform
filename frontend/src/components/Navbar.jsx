@@ -1,10 +1,10 @@
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { useAuth } from "../context/AuthContext"
-import { useTheme } from "../context/ThemeContext"
+import { useAuth } from "../context/useAuth"
+import { useTheme } from "../context/useTheme"
 
 function Navbar() {
-  const { user, token, logout } = useAuth()
+  const { token, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
